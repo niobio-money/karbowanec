@@ -1,4 +1,5 @@
 // Copyright (c) 2012-2016, The CryptoNote developers, The Bytecoin developers, The Karbowanec developers
+// Copyright (c) 2017, The Niobio developers
 //
 // This file is part of Bytecoin.
 //
@@ -99,7 +100,7 @@ const uint8_t  BLOCK_MINOR_VERSION_0                         =  0;
 const uint8_t  BLOCK_MINOR_VERSION_1                         =  1;
 
 const size_t   BLOCKS_IDS_SYNCHRONIZING_DEFAULT_COUNT        =  10000;  //by default, blocks ids count in synchronizing
-const size_t   BLOCKS_SYNCHRONIZING_DEFAULT_COUNT            =  200;    //by default, blocks count in blocks downloading
+const size_t   BLOCKS_SYNCHRONIZING_DEFAULT_COUNT            =  128;    //by default, blocks count in blocks downloading
 const size_t   COMMAND_RPC_GET_BLOCKS_FAST_MAX_COUNT         =  1000;
 
 const int      P2P_DEFAULT_PORT                              =  8313;
@@ -108,7 +109,7 @@ const int      RPC_DEFAULT_PORT                              =  8314;
 const size_t   P2P_LOCAL_WHITE_PEERLIST_LIMIT                =  1000;
 const size_t   P2P_LOCAL_GRAY_PEERLIST_LIMIT                 =  5000;
 
-const size_t   P2P_CONNECTION_MAX_WRITE_BUFFER_SIZE          = 16 * 1024 * 1024; // 16 MB
+const size_t   P2P_CONNECTION_MAX_WRITE_BUFFER_SIZE          = 64 * 1024 * 1024; // 64 MB
 const uint32_t P2P_DEFAULT_CONNECTIONS_COUNT                 = 8;
 const size_t   P2P_DEFAULT_WHITELIST_CONNECTIONS_PERCENT     = 70;
 const uint32_t P2P_DEFAULT_HANDSHAKE_INTERVAL                = 60;            // seconds
@@ -121,15 +122,15 @@ const size_t   P2P_DEFAULT_HANDSHAKE_INVOKE_TIMEOUT          = 5000;          //
 const char     P2P_STAT_TRUSTED_PUB_KEY[]                    = "";
 
 const char* const SEED_NODES[] = { 
+	"45.55.141.227:8313",
+	"138.197.222.188:8313",
 	"35.225.224.17:8313",
 	"35.205.250.90:8313",
 	"35.227.102.144:8313",
 	"35.199.180.121:8313",
-	"35.194.207.184:8313",
-	"35.200.110.7:8313",
+	"35.194.207.184:8313",	
 	"66.70.167.192:8313",
-	"45.55.141.227:8313",
-	"138.197.222.188:8313"
+	"192.99.133.153:8313"
 };
 
 struct CheckpointData {
@@ -143,6 +144,7 @@ const std::initializer_list<CheckpointData> CHECKPOINTS = {
 	{ 24758, "ef7b7c3803df58e06b21dde88c252569f118cda2fafeae9b56c6061e7c4c18eb" },
 	{ 24759, "c244f99cbcdae7eadbe19e72d17746cdb36b3fb5a446e2cd464a1bf8e4264f3c" },
 	{ 27100, "3fef469241c26535b6b7dd5482e9456ee637aac6337c17b51cafca8b6848603d" },
+	{ 27990, "0adbe06af69b87ed756c81c1581264732304eb20b4cd1bf56d7c645b9bf9d8d7" },
 	{ 29100, "bf7880e1d3fe46f1dde7351194204820ee9b5045496b6a14d10bbfe704519b8b" },
 	{ 30200, "22961a5cdebe8120ecb6cb74f03b043bf24aca54658e7d39d067bb0477fd5029" },
 	{ 32186, "599e39f9fd2a43550964c5d16c80dfcf354d559bb1110379ccff177bbf90814a" },
@@ -153,10 +155,40 @@ const std::initializer_list<CheckpointData> CHECKPOINTS = {
 	{ 32370, "055aff89d01f240120ff6e328ae40304bb0d1c1b3a4db857125fe6e2000572bf" },
 	{ 32524, "daaa655ca784f2ed0544f2f555ccad6ac030333ef2fb8ca8739de8d812b404ae" },
 	{ 32525, "ff9d83adabd88968b25d00fe1c80d53b172424b62c78b0597b4a4cebc0f121e7" },
+	{ 32855, "a837dcd54b057f4e8abace74f916f8fc89fc77f2ce4e0efff09ffb87baf65ab9" },
 	{ 33000, "e154e8df0facc073503e013e7ed7f2413f05cd46c9769d468767b3aed49c839f" },
+	{ 33375, "8ce543f8449e6e8008bc9afb05a6e4c6ce451c50bd1c84da2db6c4cdbc6e2d85" },
+	{ 33773, "1aed0bcb07420207154c97431ab6607edb9898587098991049578e38f173f929" },
 	{ 34000, "ec556ea2bd8b50ad9e83c7f7fa79fa84bbcf6d8288ccf6e2c4b96af644a8f581" },
-	{ 35000, "7eac17f1c048a141f60ee39332a4c0ee873a09eb53e35d6f7172ce78bfb56e8c" },
-	{ 35900, "6538ca031f1868672e0cadc4f3338479106bceb0972e146177b0b9dee00608d1" }
+	{ 34315, "815014644195d8959efd93c506337bbbb2d2615141f21e4dd93dcff796acfc20" },
+	{ 34396, "6bd1eb16ee0c815922c22e1f352b6387112dacfec36306880895dbba8deeec30" },
+	{ 34760, "f0e0fbc92f69e3dcadd0ca31c7c4eda021f8c50099428a119829ecb9fcf3e29b" },
+	{ 34852, "6cb8a76b41eac291cd7cf74482b3309ecb1623825b592b1267a104caf7d96c8d" },
+	{ 35000, "7eac17f1c048a141f60ee39332a4c0ee873a09eb53e35d6f7172ce78bfb56e8c" },  
+	{ 35591, "2dfbc50e1793c1bb82d4bfffaed25d70ae2ce30b871c70d1625d1e631bfbc71b" },
+	{ 35689, "62ba9bd03dfe51e3a1b334ff88d28407452e287b71c91f712ac5886acc94be40" },
+	{ 35900, "6538ca031f1868672e0cadc4f3338479106bceb0972e146177b0b9dee00608d1" },
+	{ 36000, "1372ee6202eff5dd19bb12b24d66d18d6dd15a5e9598ef987f2372158aa7bc5c" },
+	{ 36500, "d4e76dd60300cfeebe7a0b01e59b387949aa19855bea686cfda8590729265966" },
+	{ 37000, "c826741a34f2fd9a5b47bc09123539465c9815fc1590e6fae7fc7534b90a6716" },
+	{ 37500, "4e134c3094f6bcb9d3dd724ad7971a15a2b28bd36a7d3f71734fefa84246b087" },
+	{ 38000, "8af3e62e1191c372b96ff3f30f1115d55ca45e713596315feec22a3037471ef7" },
+	{ 38500, "241638d18259d85b96e24983e20520ab169a5bddad4b55882c9b28d65ce468aa" },
+	{ 39000, "a274637628b8eab46e749a90e40a8530694c21305b8d26c75f0c27b214244427" },
+	{ 39206, "fdd7c53147a084b84418a59225a02b96b1b8cbe8e567a5a5ff9ccf29e0f8fbec" },
+	{ 39318, "497012a6d84bf2542747d738b1037dadb7b1e7885091e8860acfd3fabd196551" },
+	{ 39319, "2ff445581f4aadf90ef8ebfe5b9ae1227a6c126290152c93afd352338334b23d" },
+	{ 39326, "64f45a501a206d91ad0df84e91d422e54eaa655a7159a87ef3034e487f9f3ea4" },
+	{ 39329, "3fee7fe3ec965ed629ff01af8eebd89c1ef09a221e0a52fe53b32ccd75a4ce04" },
+	{ 39421, "33ed8b5a1e3b925de9b8512e81e2fa57e129b91028c20e43e3bb16ef399d016b" },
+	{ 39500, "035f9be0f7d2cf8fffc55a698e90be74d8885321f4c43468cfdd3aa013e5d094" },
+	{ 41100, "f917db589f0bb85d7538528672e8e5166e222bf3e7086d39ec7999ce7a361915" },
+	{ 41727, "4581bcd69a4924b0cd7c6c9f8e65817feaba3ae3ec984a4b1ede2c450b9eb31e" },
+	{ 46696, "7d0d9048be57c80d2c44fe67555b65d93449e088c0773ae630b6165f87562057" },
+	{ 47329, "dbe612e290285c5c5a80f496692be4a6e49c09abee1f50455563ad0a256e748b" },
+	{ 47330, "924feb71a2c589718e8c8a922d9cf5e3ad3163441e4c975bbf41e413481342c2" }
+	
+	
 };
 
 } // CryptoNote
