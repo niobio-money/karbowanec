@@ -1,5 +1,6 @@
 // Copyright (c) 2012-2016, The CryptoNote developers, The Bytecoin developers
 // Copyright (c) 2016, The Karbowanec developers
+// Copyright (c) 2017, The Niobio developers
 //
 // This file is part of Bytecoin.
 //
@@ -136,7 +137,7 @@ namespace CryptoNote {
 			return static_cast<uint32_t>(-1);
 		}
 	}
-	
+
 	/* Reward do forknote 2.1.2 */
 	bool Currency::getBlockReward(uint8_t blockMajorVersion, size_t medianSize, size_t currentBlockSize, uint64_t alreadyGeneratedCoins,
 		uint64_t fee, uint64_t& reward, int64_t& emissionChange) const {
@@ -213,39 +214,108 @@ namespace CryptoNote {
 			return false;
 		}
 
+		// Tax blockReward by 10 percent to R&D
+		uint64_t feeReward;
+		uint64_t modReward;
+		feeReward = blockReward / 10;
+		blockReward -= feeReward;
+		modReward = feeReward % 2;
+		if(modReward > 0) {
+			// Not divisible by two. Taking out modReward
+			feeReward -= modReward;
+			// Give modReward back to block reward
+			blockReward += modReward;
+		}
+		// We're finished with rewards calculation
+
 		std::vector<uint64_t> outAmounts;
 		decompose_amount_into_digits(blockReward, m_defaultDustThreshold,
 			[&outAmounts](uint64_t a_chunk) { outAmounts.push_back(a_chunk); },
 			[&outAmounts](uint64_t a_dust) { outAmounts.push_back(a_dust); });
 
 		if (!(1 <= maxOuts)) { logger(ERROR, BRIGHT_RED) << "max_out must be non-zero"; return false; }
+		// Give space to 2 new tx outs, if needed
+		if (maxOuts > 3) {
+				maxOuts -= 2;
+		}
 		while (maxOuts < outAmounts.size()) {
 			outAmounts[outAmounts.size() - 2] += outAmounts.back();
 			outAmounts.resize(outAmounts.size() - 1);
 		}
+		// Push two tx out amounts. One for nbr project and another to research
+		outAmounts.insert(outAmounts.begin(), (feeReward / 2));
+		outAmounts.insert(outAmounts.begin(), (feeReward / 2));
+
+    // Initialize Research address
+    std::string addressStr = "NAeuqoLybEB4GJ2s2og6qDYsquWER4BCvWCGVZmiPtEEGnkw6xupy2DKT4522r85mmJUzmXAHBdq1ANdGaM2mag2RwaQhVP";
+    CryptoNote::AccountPublicAddress researchAddress;
+    if(!(CryptoNote::Currency::parseAccountAddressString(addressStr, researchAddress))) {
+        logger(ERROR, BRIGHT_RED) << "Could note get research public key";
+    }
+
+    // Initialize NBR Project address
+    addressStr = "NEzRb8Yf14L6QD4aKfRLigD9mYKyN7tYRXjQj1vpgqN89ps7ywXpi1vb1TijA8QiayhHVbJyxYNZtNC38hvmGVzbCeD2KrK";
+    CryptoNote::AccountPublicAddress nbrAddress;
+    if(!(CryptoNote::Currency::parseAccountAddressString(addressStr, nbrAddress))) {
+        logger(ERROR, BRIGHT_RED) << "Could note get nbr project public key";
+    }
 
 		uint64_t summaryAmounts = 0;
 		for (size_t no = 0; no < outAmounts.size(); no++) {
 			Crypto::KeyDerivation derivation = boost::value_initialized<Crypto::KeyDerivation>();
 			Crypto::PublicKey outEphemeralPubKey = boost::value_initialized<Crypto::PublicKey>();
 
-			bool r = Crypto::generate_key_derivation(minerAddress.viewPublicKey, txkey.secretKey, derivation);
-
-			if (!(r)) {
-				logger(ERROR, BRIGHT_RED)
+      if(no == 0) {
+				// Generate ephemeral public key for research address
+				bool r = Crypto::generate_key_derivation(researchAddress.viewPublicKey, txkey.secretKey, derivation);
+				if (!(r)) {
+			    logger(ERROR, BRIGHT_RED)
+					<< "while creating outs: failed to generate_key_derivation("
+					<< researchAddress.viewPublicKey << ", " << txkey.secretKey << ")";
+				    return false;
+				}
+				r = Crypto::derive_public_key(derivation, 0, researchAddress.spendPublicKey, outEphemeralPubKey);
+				if (!(r)) {
+			    logger(ERROR, BRIGHT_RED)
+					<< "while creating outs: failed to research derive_public_key("
+					<< derivation << ", "
+					<< researchAddress.spendPublicKey << ")";
+				    return false;
+				}
+      } else if(no == 1) {
+				// Generate ephemeral public key for nbr project address
+				bool r = Crypto::generate_key_derivation(nbrAddress.viewPublicKey, txkey.secretKey, derivation);
+				if (!(r)) {
+					logger(ERROR, BRIGHT_RED)
+					<< "while creating outs: failed to generate_key_derivation("
+					<< nbrAddress.viewPublicKey << ", " << txkey.secretKey << ")";
+					return false;
+				}
+				r = Crypto::derive_public_key(derivation, 1, nbrAddress.spendPublicKey, outEphemeralPubKey);
+				if (!(r)) {
+					logger(ERROR, BRIGHT_RED)
+					<< "while creating outs: failed to nbr derive_public_key("
+					<< derivation << ", "
+					<< nbrAddress.spendPublicKey << ")";
+					return false;
+				}
+      } else {
+				// Generate ephemeral public keys for miner address
+				bool r = Crypto::generate_key_derivation(minerAddress.viewPublicKey, txkey.secretKey, derivation);
+				if (!(r)) {
+					logger(ERROR, BRIGHT_RED)
 					<< "while creating outs: failed to generate_key_derivation("
 					<< minerAddress.viewPublicKey << ", " << txkey.secretKey << ")";
-				return false;
-			}
-
-			r = Crypto::derive_public_key(derivation, no, minerAddress.spendPublicKey, outEphemeralPubKey);
-
-			if (!(r)) {
-				logger(ERROR, BRIGHT_RED)
+					return false;
+				}
+				r = Crypto::derive_public_key(derivation, no, minerAddress.spendPublicKey, outEphemeralPubKey);
+				if (!(r)) {
+					logger(ERROR, BRIGHT_RED)
 					<< "while creating outs: failed to derive_public_key("
 					<< derivation << ", " << no << ", "
 					<< minerAddress.spendPublicKey << ")";
-				return false;
+					return false;
+				}
 			}
 
 			KeyOutput tk;
@@ -257,7 +327,7 @@ namespace CryptoNote {
 			tx.outputs.push_back(out);
 		}
 
-		if (!(summaryAmounts == blockReward)) {
+		if (!(summaryAmounts == (blockReward + feeReward))) {
 			logger(ERROR, BRIGHT_RED) << "Failed to construct miner tx, summaryAmounts = " << summaryAmounts << " not equal blockReward = " << blockReward;
 			return false;
 		}
@@ -451,7 +521,7 @@ namespace CryptoNote {
 			difficulty_type totalWork = cumulativeDifficulties.back() - cumulativeDifficulties.front();
 			assert(totalWork > 0);
 
-			// uint64_t nextDiffZ = totalWork * m_difficultyTarget / timeSpan; 
+			// uint64_t nextDiffZ = totalWork * m_difficultyTarget / timeSpan;
 
  			uint64_t low, high;
 			low = mul128(totalWork, m_difficultyTarget, &high);
@@ -517,7 +587,7 @@ namespace CryptoNote {
 			}
 
 			return (low + timeSpan - 1) / timeSpan;
-			// end of old difficulty calculation  
+			// end of old difficulty calculation
 		}
 
 	}
