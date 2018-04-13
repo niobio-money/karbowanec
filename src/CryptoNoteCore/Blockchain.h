@@ -1,5 +1,6 @@
 // Copyright (c) 2012-2016, The CryptoNote developers, The Bytecoin developers
 // Copyright (c) 2016, The Karbowanec developers
+// Copyright (c) 2017, The Niobio developers
 //
 // This file is part of Bytecoin.
 //
@@ -54,7 +55,7 @@ namespace CryptoNote {
   using CryptoNote::BlockInfo;
   class Blockchain : public CryptoNote::ITransactionValidator {
   public:
-    Blockchain(const Currency& currency, tx_memory_pool& tx_pool, Logging::ILogger& logger, bool blockchainIndexesEnabled);
+    Blockchain(const Currency& currency, tx_memory_pool& tx_pool, Logging::ILogger& logger, bool blockchainIndexesEnabled, int poolSize);
 
     bool addObserver(IBlockchainStorageObserver* observer);
     bool removeObserver(IBlockchainStorageObserver* observer);
@@ -73,6 +74,7 @@ namespace CryptoNote {
     std::vector<Crypto::Hash> getBlockIds(uint32_t startHeight, uint32_t maxCount);
 
     void setCheckpoints(Checkpoints&& chk_pts) { m_checkpoints = chk_pts; }
+
     bool getBlocks(uint32_t start_offset, uint32_t count, std::list<Block>& blocks, std::list<Transaction>& txs);
     bool getBlocks(uint32_t start_offset, uint32_t count, std::list<Block>& blocks);
     bool getAlternativeBlocks(std::list<Block>& blocks);
@@ -264,12 +266,14 @@ namespace CryptoNote {
     MultisignatureOutputsContainer m_multisignatureOutputs;
     UpgradeDetector m_upgradeDetectorV2;
     UpgradeDetector m_upgradeDetectorV3;
+    UpgradeDetector m_upgradeDetectorV4;
 
     PaymentIdIndex m_paymentIdIndex;
     TimestampBlocksIndex m_timestampIndex;
     GeneratedTransactionsIndex m_generatedTransactionsIndex;
     OrphanBlocksIndex m_orthanBlocksIndex;
     bool m_blockchainIndexesEnabled;
+    int m_poolSize;
 
     IntrusiveLinkedList<MessageQueue<BlockchainMessage>> m_messageQueueList;
 
@@ -385,4 +389,3 @@ namespace CryptoNote {
     return true;
   }
 }
-
