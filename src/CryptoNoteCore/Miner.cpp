@@ -121,7 +121,7 @@ namespace CryptoNote
   bool miner::on_idle()
   {
     m_update_block_template_interval.call([&](){
-      if(is_mining()) 
+      if(is_mining())
         request_block_template();
       return true;
     });
@@ -160,7 +160,7 @@ namespace CryptoNote
         std::cout << "hashrate: " << std::setprecision(4) << std::fixed << hr << ENDL;
       }
     }
-    
+
     m_last_hr_merge_time = millisecondsSinceEpoch();
     m_hashes = 0;
   }
@@ -169,8 +169,8 @@ namespace CryptoNote
     if (!config.extraMessages.empty()) {
       std::string buff;
       if (!Common::loadFileToString(config.extraMessages, buff)) {
-        logger(ERROR, BRIGHT_RED) << "Failed to load file with extra messages: " << config.extraMessages; 
-        return false; 
+        logger(ERROR, BRIGHT_RED) << "Failed to load file with extra messages: " << config.extraMessages;
+        return false;
       }
       std::vector<std::string> extra_vec;
       boost::split(extra_vec, buff, boost::is_any_of("\n"), boost::token_compress_on );
@@ -215,7 +215,7 @@ namespace CryptoNote
   }
   //-----------------------------------------------------------------------------------------------------
   bool miner::start(const AccountPublicAddress& adr, size_t threads_count)
-  {   
+  {
     if (is_mining()) {
       logger(ERROR) << "Starting miner but it's already started";
       return false;
@@ -245,7 +245,7 @@ namespace CryptoNote
     logger(INFO) << "Mining has started with " << threads_count << " threads, good luck!";
     return true;
   }
-  
+
   //-----------------------------------------------------------------------------------------------------
   uint64_t miner::get_speed()
   {
@@ -254,9 +254,9 @@ namespace CryptoNote
     else
       return 0;
   }
-  
+
   //-----------------------------------------------------------------------------------------------------
-  void miner::send_stop_signal() 
+  void miner::send_stop_signal()
   {
     m_stop = true;
   }
@@ -276,10 +276,12 @@ namespace CryptoNote
     return true;
   }
   //-----------------------------------------------------------------------------------------------------
-  bool miner::find_nonce_for_given_block(Crypto::cn_context &context, Block& bl, const difficulty_type& diffic) {
+  bool miner::find_nonce_for_given_block(Block& bl, const difficulty_type& diffic) {
 
     unsigned nthreads = std::thread::hardware_concurrency();
-
+    
+	cn_pow_hash_v2 hash_ctx;
+	
     if (nthreads > 0 && diffic > 5) {
       std::vector<std::future<void>> threads(nthreads);
       std::atomic<uint32_t> foundNonce;
@@ -288,7 +290,7 @@ namespace CryptoNote
 
       for (unsigned i = 0; i < nthreads; ++i) {
         threads[i] = std::async(std::launch::async, [&, i]() {
-          Crypto::cn_context localctx;
+			
           Crypto::Hash h;
 
           Block lb(bl); // copy to local block
@@ -296,7 +298,7 @@ namespace CryptoNote
           for (uint32_t nonce = startNonce + i; !found; nonce += nthreads) {
             lb.nonce = nonce;
 
-            if (!get_block_longhash(localctx, lb, h)) {
+            if (!get_block_longhash(hash_ctx, lb, h)) {
               return;
             }
 
@@ -321,7 +323,7 @@ namespace CryptoNote
     } else {
       for (; bl.nonce != std::numeric_limits<uint32_t>::max(); bl.nonce++) {
         Crypto::Hash h;
-        if (!get_block_longhash(context, bl, h)) {
+        if (!get_block_longhash(hash_ctx, bl, h)) {
           return false;
         }
 
@@ -368,7 +370,7 @@ namespace CryptoNote
     uint32_t nonce = m_starter_nonce + th_local_index;
     difficulty_type local_diff = 0;
     uint32_t local_template_ver = 0;
-    Crypto::cn_context context;
+    cn_pow_hash_v2 hash_ctx;
     Block b;
 
     while(!m_stop)
@@ -398,7 +400,7 @@ namespace CryptoNote
 
       b.nonce = nonce;
       Crypto::Hash h;
-      if (!m_stop && !get_block_longhash(context, b, h)) {
+      if (!m_stop && !get_block_longhash(hash_ctx, b, h)) {
         logger(ERROR) << "Failed to get block long hash";
         m_stop = true;
       }
@@ -408,7 +410,7 @@ namespace CryptoNote
         //we lucky!
         ++m_config.current_extra_message_index;
 
-        logger(INFO, GREEN) << "Found block for difficulty: " << local_diff;
+        logger(INFO, GREEN) << "Found block for difficulty " << local_diff;
 
         if(!m_handler.handle_block_found(b)) {
           --m_config.current_extra_message_index;

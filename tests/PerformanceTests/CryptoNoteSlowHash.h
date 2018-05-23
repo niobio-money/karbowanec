@@ -55,5 +55,4 @@ public:
 private:
   data_t m_data;
   Crypto::Hash m_expected_hash;
-  Crypto::cn_context m_context;
 };

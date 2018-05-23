@@ -56,7 +56,8 @@ public:
   std::vector<CryptoNote::TransactionDestinationEntry> m_destinations;
 
 private:
-
+  #pragma clang diagnostic push
+  #pragma clang diagnostic ignored "-Wunused-private-field"
   void fillInputs(CryptoNote::Transaction& tx, std::vector<CryptoNote::KeyPair>& contexts) const;
   void fillOutputs(CryptoNote::Transaction& tx) const;
   void signSources(const Crypto::Hash& prefixHash, const std::vector<CryptoNote::KeyPair>& contexts, CryptoNote::Transaction& tx) const;
@@ -76,4 +77,5 @@ private:
   uint64_t m_unlockTime;
   CryptoNote::KeyPair m_txKey;
   const CryptoNote::Currency& m_currency;
+  #pragma clang diagnostic pop
 };

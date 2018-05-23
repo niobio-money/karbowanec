@@ -38,10 +38,11 @@ bool Checkpoints::add_checkpoint(uint32_t height, const std::string &hash_str) {
   }
 
   m_points[height] = h;
+
   return true;
 }
 //---------------------------------------------------------------------------
-bool Checkpoints::is_in_checkpoint_zone(uint32_t  height) const {
+bool Checkpoints::is_in_checkpoint_zone(uint32_t height) const {
   return !m_points.empty() && (height <= (--m_points.end())->first);
 }
 //---------------------------------------------------------------------------
@@ -53,7 +54,7 @@ bool Checkpoints::check_block(uint32_t  height, const Crypto::Hash &h,
     return true;
 
   if (it->second == h) {
-    logger(Logging::INFO, Logging::GREEN) 
+    logger(Logging::INFO, Logging::GREEN)
       << "CHECKPOINT PASSED FOR HEIGHT " << height << " " << h;
     return true;
   } else {

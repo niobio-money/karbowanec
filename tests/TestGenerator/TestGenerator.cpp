@@ -159,8 +159,7 @@ bool test_generator::constructBlock(CryptoNote::Block& blk, uint32_t height, con
 
   // Nonce search...
   blk.nonce = 0;
-  Crypto::cn_context context;
-  while (!miner::find_nonce_for_given_block(context, blk, getTestDifficulty())) {
+  while (!miner::find_nonce_for_given_block(blk, getTestDifficulty())) {
     blk.timestamp++;
   }
 
@@ -292,8 +291,7 @@ bool test_generator::constructMaxSizeBlock(CryptoNote::Block& blk, const CryptoN
 
 void fillNonce(CryptoNote::Block& blk, const difficulty_type& diffic) {
   blk.nonce = 0;
-  Crypto::cn_context context;
-  while (!miner::find_nonce_for_given_block(context, blk, diffic)) {
+  while (!miner::find_nonce_for_given_block(blk, diffic)) {
     blk.timestamp++;
   }
 }

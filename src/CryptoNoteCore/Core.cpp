@@ -1,4 +1,5 @@
 // Copyright (c) 2012-2016, The CryptoNote developers, The Bytecoin developers, The Karbowanec developers
+// Copyright (c) 2017, The Niobio developers
 //
 // This file is part of Bytecoin.
 //
@@ -20,6 +21,7 @@
 #include <sstream>
 #include <unordered_set>
 #include "../CryptoNoteConfig.h"
+#include "Common/Math.h"
 #include "../Common/CommandLine.h"
 #include "../Common/Util.h"
 #include "../Common/StringTools.h"
@@ -38,7 +40,7 @@
 using namespace Logging;
 #include "CryptoNoteCore/CoreConfig.h"
 
-using namespace  Common;
+using namespace Common;
 
 namespace CryptoNote {
 
@@ -64,11 +66,11 @@ private:
   friend class core;
 };
 
-core::core(const Currency& currency, i_cryptonote_protocol* pprotocol, Logging::ILogger& logger, bool blockchainIndexesEnabled) :
+core::core(const Currency& currency, i_cryptonote_protocol* pprotocol, Logging::ILogger& logger, bool blockchainIndexesEnabled, int poolSize) :
 m_currency(currency),
 logger(logger, "core"),
 m_mempool(currency, m_blockchain, m_timeProvider, logger, blockchainIndexesEnabled),
-m_blockchain(currency, m_mempool, logger, blockchainIndexesEnabled),
+m_blockchain(currency, m_mempool, logger, blockchainIndexesEnabled, poolSize),
 m_miner(new miner(currency, *this, logger)),
 m_starter_message_showed(false) {
   set_cryptonote_protocol(pprotocol);
@@ -114,7 +116,7 @@ bool core::get_blocks(uint32_t start_offset, uint32_t count, std::list<Block>& b
 
 bool core::get_blocks(uint32_t start_offset, uint32_t count, std::list<Block>& blocks) {
   return m_blockchain.getBlocks(start_offset, count, blocks);
-}  
+}
 void core::getTransactions(const std::vector<Crypto::Hash>& txs_ids, std::list<Transaction>& txs, std::list<Crypto::Hash>& missed_txs, bool checkTxPool) {
   m_blockchain.getTransactions(txs_ids, txs, missed_txs, checkTxPool);
 }
@@ -278,7 +280,7 @@ bool core::check_tx_semantic(const Transaction& tx, bool keeped_by_block) {
 bool core::check_tx_inputs_keyimages_diff(const Transaction& tx) {
 
   // parameters used for the additional key_image check
-  static const Crypto::KeyImage Z = { { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 } };
+  //static const Crypto::KeyImage Z = { { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 } };
   static const Crypto::KeyImage I = { { 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 } };
   static const Crypto::KeyImage L = { { 0xed, 0xd3, 0xf5, 0x5c, 0x1a, 0x63, 0x12, 0x58, 0xd6, 0x9c, 0xf7, 0xa2, 0xde, 0xf9, 0xde, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10 } };
 
@@ -325,7 +327,7 @@ size_t core::get_blockchain_total_transactions() {
 //}
 
 bool core::add_new_tx(const Transaction& tx, const Crypto::Hash& tx_hash, size_t blob_size, tx_verification_context& tvc, bool keeped_by_block) {
-  //Locking on m_mempool and m_blockchain closes possibility to add tx to memory pool which is already in blockchain 
+  //Locking on m_mempool and m_blockchain closes possibility to add tx to memory pool which is already in blockchain
   std::lock_guard<decltype(m_mempool)> lk(m_mempool);
   LockedBlockchainStorage lbs(m_blockchain);
 
@@ -361,7 +363,11 @@ bool core::get_block_template(Block& b, const AccountPublicAddress& adr, difficu
     if (b.majorVersion == BLOCK_MAJOR_VERSION_1) {
       b.minorVersion = m_currency.upgradeHeight(BLOCK_MAJOR_VERSION_2) == UpgradeDetectorBase::UNDEF_HEIGHT ? BLOCK_MINOR_VERSION_1 : BLOCK_MINOR_VERSION_0;
     } else if (b.majorVersion >= BLOCK_MAJOR_VERSION_2) {
-      if (m_currency.upgradeHeight(BLOCK_MAJOR_VERSION_3) == UpgradeDetectorBase::UNDEF_HEIGHT) {
+      if (m_currency.upgradeHeight(BLOCK_MAJOR_VERSION_5) == UpgradeDetectorBase::UNDEF_HEIGHT) {
+        b.minorVersion = b.majorVersion == BLOCK_MAJOR_VERSION_4 ? BLOCK_MINOR_VERSION_1 : BLOCK_MINOR_VERSION_0;
+      } else if (m_currency.upgradeHeight(BLOCK_MAJOR_VERSION_4) == UpgradeDetectorBase::UNDEF_HEIGHT) {
+        b.minorVersion = b.majorVersion == BLOCK_MAJOR_VERSION_3 ? BLOCK_MINOR_VERSION_1 : BLOCK_MINOR_VERSION_0;
+      } else if (m_currency.upgradeHeight(BLOCK_MAJOR_VERSION_3) == UpgradeDetectorBase::UNDEF_HEIGHT) {
         b.minorVersion = b.majorVersion == BLOCK_MAJOR_VERSION_2 ? BLOCK_MINOR_VERSION_1 : BLOCK_MINOR_VERSION_0;
       } else {
         b.minorVersion = BLOCK_MINOR_VERSION_0;
@@ -381,6 +387,19 @@ bool core::get_block_template(Block& b, const AccountPublicAddress& adr, difficu
     b.previousBlockHash = get_tail_id();
     b.timestamp = time(NULL);
 
+    // Jagerman fix - https://github.com/graft-project/GraftNetwork/pull/118/commits
+    uint64_t blockchain_timestamp_check_window = b.majorVersion < BLOCK_MAJOR_VERSION_5 ? parameters::BLOCKCHAIN_TIMESTAMP_CHECK_WINDOW : parameters::BLOCKCHAIN_TIMESTAMP_CHECK_WINDOW_V5;
+    if(height >= blockchain_timestamp_check_window) {
+      std::vector<uint64_t> timestamps;
+      for(size_t offset = height - blockchain_timestamp_check_window; offset < height; ++offset) {
+        timestamps.push_back(m_blockchain.getBlockTimestamp(offset));
+      }
+      uint64_t median_ts = Common::medianValue(timestamps);
+      if (b.timestamp < median_ts) {
+        b.timestamp = median_ts;
+      }
+    }
+    // Jagerman fix
     median_size = m_blockchain.getCurrentCumulativeBlocksizeLimit() / 2;
     already_generated_coins = m_blockchain.getCoinsInCirculation();
   }
@@ -398,9 +417,9 @@ bool core::get_block_template(Block& b, const AccountPublicAddress& adr, difficu
      */
   //make blocks coin-base tx looks close to real coinbase tx to get truthful blob size
   bool r = m_currency.constructMinerTx(b.majorVersion, height, median_size, already_generated_coins, txs_size, fee, adr, b.baseTransaction, ex_nonce, 11);
-  if (!r) { 
-    logger(ERROR, BRIGHT_RED) << "Failed to construct miner tx, first chance"; 
-    return false; 
+  if (!r) {
+    logger(ERROR, BRIGHT_RED) << "Failed to construct miner tx, first chance";
+    return false;
   }
 
   size_t cumulative_size = txs_size + getObjectBinarySize(b.baseTransaction);
@@ -881,9 +900,9 @@ bool core::scanOutputkeysForIndices(const KeyInput& txInToKey, std::list<std::pa
       return true;
     }
   };
-    
+
   outputs_visitor vi(outputReferences);
-    
+
   return m_blockchain.scanOutputKeysForIndexes(txInToKey, vi);
 }
 
@@ -1011,7 +1030,7 @@ bool core::handleIncomingTransaction(const Transaction& tx, const Crypto::Hash& 
     if (!tvc.m_tx_fee_too_small) {
       logger(ERROR) << "Transaction verification failed: " << txHash;
     } else {
-      logger(INFO) << "Transaction verification failed: " << txHash;
+      logger(TRACE) << "Transaction verification failed: " << txHash;
     }
   } else if (tvc.m_verifivation_impossible) {
     logger(ERROR) << "Transaction verification impossible: " << txHash;

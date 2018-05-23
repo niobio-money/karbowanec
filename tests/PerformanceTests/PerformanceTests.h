@@ -126,6 +126,5 @@ void run_test(const char* test_name)
 }
 
 #define QUOTEME(x) #x
-#define TEST_PERFORMANCE0(test_class)         run_test< test_class >(QUOTEME(test_class))
 #define TEST_PERFORMANCE1(test_class, a0)     run_test< test_class<a0> >(QUOTEME(test_class<a0>))
 #define TEST_PERFORMANCE2(test_class, a0, a1) run_test< test_class<a0, a1> >(QUOTEME(test_class) "<" QUOTEME(a0) ", " QUOTEME(a1) ">")

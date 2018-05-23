@@ -322,8 +322,7 @@ void WalletGreen::initWithKeys(const std::string& path, const std::string& passw
   prefix->version = static_cast<uint8_t>(WalletSerializerV2::SERIALIZATION_VERSION);
   prefix->nextIv = Crypto::rand<Crypto::chacha8_iv>();
 
-  Crypto::cn_context cnContext;
-  Crypto::generate_chacha8_key(cnContext, password, m_key);
+  Crypto::generate_chacha8_key(password, m_key);
 
   uint64_t creationTimestamp = time(nullptr);
   prefix->encryptedViewKeys = encryptKeyPair(viewPublicKey, viewSecretKey, creationTimestamp, m_key, prefix->nextIv);
@@ -391,8 +390,7 @@ void WalletGreen::exportWallet(const std::string& path, bool encrypt, WalletSave
     if (encrypt) {
       newStorageKey = m_key;
     } else {
-      cn_context cnContext;
-      generate_chacha8_key(cnContext, "", newStorageKey);
+      generate_chacha8_key("", newStorageKey);
     }
 
     copyContainerStoragePrefix(m_containerStorage, m_key, newStorage, newStorageKey);
@@ -424,8 +422,7 @@ void WalletGreen::load(const std::string& path, const std::string& password, std
 
   stopBlockchainSynchronizer();
 
-  Crypto::cn_context cnContext;
-  generate_chacha8_key(cnContext, password, m_key);
+  Crypto::generate_chacha8_key(password, m_key);
 
   std::ifstream walletFileStream(path, std::ios_base::binary);
   int version = walletFileStream.peek();
@@ -837,9 +834,9 @@ void WalletGreen::changePassword(const std::string& oldPassword, const std::stri
     return;
   }
 
-  Crypto::cn_context cnContext;
+  
   Crypto::chacha8_key newKey;
-  Crypto::generate_chacha8_key(cnContext, newPassword, newKey);
+  generate_chacha8_key(newPassword, m_key);
 
   m_containerStorage.atomicUpdate([this, newKey](ContainerStorage& newStorage) {
     copyContainerStoragePrefix(m_containerStorage, m_key, newStorage, newKey);
@@ -921,14 +918,15 @@ std::string WalletGreen::createAddress() {
   return doCreateAddress(spendKey.publicKey, spendKey.secretKey, creationTimestamp);
 }
 
-std::string WalletGreen::createAddress(const Crypto::SecretKey& spendSecretKey) {
+std::string WalletGreen::createAddress(const Crypto::SecretKey& spendSecretKey, bool reset) {
   Crypto::PublicKey spendPublicKey;
   if (!Crypto::secret_key_to_public_key(spendSecretKey, spendPublicKey)) {
     m_logger(ERROR, BRIGHT_RED) << "createAddress(" << spendSecretKey << ") Failed to convert secret key to public key";
     throw std::system_error(make_error_code(CryptoNote::error::KEY_GENERATION_ERROR));
   }
+  uint64_t creationTimestamp = reset ? 0 : static_cast<uint64_t>(time(nullptr));
 
-  return doCreateAddress(spendPublicKey, spendSecretKey, 0);
+  return doCreateAddress(spendPublicKey, spendSecretKey, creationTimestamp);
 }
 
 std::string WalletGreen::createAddress(const Crypto::PublicKey& spendPublicKey) {
@@ -941,7 +939,8 @@ std::string WalletGreen::createAddress(const Crypto::PublicKey& spendPublicKey) 
 }
 
 std::string WalletGreen::doCreateAddress(const Crypto::PublicKey& spendPublicKey, const Crypto::SecretKey& spendSecretKey, uint64_t creationTimestamp) {
-  assert(creationTimestamp <= std::numeric_limits<uint64_t>::max() - m_currency.blockFutureTimeLimit());
+
+  assert(creationTimestamp <= std::numeric_limits<uint64_t>::max() - m_currency.blockFutureTimeLimitV4());
 
   throwIfNotInitialized();
   throwIfStopped();
@@ -953,7 +952,7 @@ std::string WalletGreen::doCreateAddress(const Crypto::PublicKey& spendPublicKey
     address = addWallet(spendPublicKey, spendSecretKey, creationTimestamp);
     auto currentTime = static_cast<uint64_t>(time(nullptr));
 
-    if (creationTimestamp + m_currency.blockFutureTimeLimit() < currentTime) {
+    if (creationTimestamp + m_currency.blockFutureTimeLimitV4() < currentTime) {
       save(WalletSaveLevel::SAVE_KEYS_AND_TRANSACTIONS, m_extra);
       shutdown();
       load(m_path, m_password);
@@ -1877,7 +1876,7 @@ bool WalletGreen::adjustTransfer(size_t transactionId, size_t firstTransferIdx, 
           it->second.amount = amount;
           updated = true;
         }
-        
+
         firstAddressTransferFound = true;
         ++it;
       }
@@ -3047,7 +3046,7 @@ std::vector<WalletGreen::OutputToTransfer> WalletGreen::pickRandomFusionInputs(c
       break;
     }
   }
-  
+
   if (bucketNumberIndex == bucketNumbers.size()) {
     return {};
   }
@@ -3059,7 +3058,7 @@ std::vector<WalletGreen::OutputToTransfer> WalletGreen::pickRandomFusionInputs(c
   for (size_t i = 0; i < selectedBucket; ++i) {
     lowerBound *= 10;
   }
-   
+
   uint64_t upperBound = selectedBucket == std::numeric_limits<uint64_t>::digits10 ? UINT64_MAX : lowerBound * 10;
   std::vector<WalletGreen::OutputToTransfer> selectedOuts;
   selectedOuts.reserve(bucketSizes[selectedBucket]);
@@ -3085,7 +3084,7 @@ std::vector<WalletGreen::OutputToTransfer> WalletGreen::pickRandomFusionInputs(c
   }
 
   std::sort(trimmedSelectedOuts.begin(), trimmedSelectedOuts.end(), outputsSortingFunction);
-  return trimmedSelectedOuts;  
+  return trimmedSelectedOuts;
 }
 
 std::vector<TransactionsInBlockInfo> WalletGreen::getTransactionsInBlocks(uint32_t blockIndex, size_t count) const {

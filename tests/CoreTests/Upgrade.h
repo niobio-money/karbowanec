@@ -15,9 +15,10 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with Bytecoin.  If not, see <http://www.gnu.org/licenses/>.
 
-#pragma once 
+#pragma once
 #include "Chaingen.h"
-
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-private-field"
 struct gen_upgrade : public test_chain_unit_base
 {
   gen_upgrade();
@@ -47,3 +48,4 @@ private:
   uint64_t m_coinsInCirculationBeforeUpgrade;
   uint64_t m_coinsInCirculationAfterUpgrade;
 };
+#pragma clang diagnostic pop

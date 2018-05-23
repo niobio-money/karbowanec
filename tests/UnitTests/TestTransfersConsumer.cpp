@@ -344,7 +344,7 @@ TEST_F(TransfersConsumerTest, onNewBlocks_OneEmptyBlockOneFilled) {
   subscription.syncStart.height = 1;
   subscription.syncStart.timestamp = 1234;
 
-  TestTransactionBuilder b1;  
+  TestTransactionBuilder b1;
   auto unknownSender = generateAccountKeys();
   b1.addTestInput(1000, unknownSender);
   b1.addTestKeyOutput(123, 1, m_accountKeys);
@@ -602,7 +602,7 @@ TEST_F(TransfersConsumerTest, onNewBlocks_getTransactionOutsGlobalIndicesIsNotCa
 
 TEST_F(TransfersConsumerTest, onNewBlocks_markTransactionConfirmed) {
   auto& container = addSubscription().getContainer();
-  
+
   TestTransactionBuilder b1;
   auto unknownSender = generateAccountKeys();
   b1.addTestInput(10000, unknownSender);
@@ -771,13 +771,13 @@ TEST_F(TransfersConsumerTest, onNewBlocks_manyBlocks) {
  for (auto& b : blocks) {
    b.block = Block();
    b.block->timestamp = timestamp++;
-   
+
    if (++blockIdx % 10 == 0) {
      for (size_t i = 0; i < txPerBlock; ++i) {
        TestTransactionBuilder b1;
        auto unknownSender = generateAccountKeys();
        b1.addTestInput(10000, unknownSender);
-       
+
        if ((i % 3) == 0) {
          b1.addTestKeyOutput(1000, ++globalOut, m_accountKeys);
          b1.addTestKeyOutput(2000, ++globalOut, m_accountKeys);
@@ -879,9 +879,9 @@ TEST_F(TransfersConsumerTest, onPoolUpdated_deleteTransactionNotDeleted) {
   TransfersObserver observer;
   sub.addObserver(&observer);
 
-  std::vector<Crypto::Hash> deleted = { 
-    Crypto::rand<Crypto::Hash>(), 
-    Crypto::rand<Crypto::Hash>() 
+  std::vector<Crypto::Hash> deleted = {
+    Crypto::rand<Crypto::Hash>(),
+    Crypto::rand<Crypto::Hash>()
   };
 
   m_consumer.onPoolUpdated({}, deleted);
@@ -903,7 +903,7 @@ TEST_F(TransfersConsumerTest, onPoolUpdated_deleteTransaction) {
     TestTransactionBuilder b1;
     auto unknownSender = generateAccountKeys();
     b1.addTestInput(10000, unknownSender);
-    auto out = b1.addTestKeyOutput(10000, UNCONFIRMED_TRANSACTION_GLOBAL_OUTPUT_INDEX, m_accountKeys);
+    b1.addTestKeyOutput(10000, UNCONFIRMED_TRANSACTION_GLOBAL_OUTPUT_INDEX, m_accountKeys);
 
     auto tx = std::shared_ptr<ITransactionReader>(b1.build().release());
 
@@ -911,7 +911,7 @@ TEST_F(TransfersConsumerTest, onPoolUpdated_deleteTransaction) {
     added.push_back(std::move(prefix));
     deleted.push_back(added.back()->getTransactionHash());
   }
-  
+
   m_consumer.onPoolUpdated(added, {});
   m_consumer.onPoolUpdated({}, deleted);
 
@@ -1078,7 +1078,7 @@ TEST_F(TransfersConsumerPerformanceTest, DISABLED_performanceTest) {
 
   auto expectedTransactions = generateBlocks(blocksCount, txPerBlock, 3);
   auto start = std::chrono::steady_clock::now();
-  
+
   std::cout << "Calling onNewBlocks" << std::endl;
 
   ASSERT_TRUE(m_consumer.onNewBlocks(&blocks[0], 0, static_cast<uint32_t>(blocks.size())));

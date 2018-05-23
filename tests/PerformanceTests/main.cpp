@@ -21,7 +21,6 @@
 // tests
 #include "ConstructTransaction.h"
 #include "CheckRingSignature.h"
-#include "CryptoNoteSlowHash.h"
 #include "DerivePublicKey.h"
 #include "DeriveSecretKey.h"
 #include "GenerateKeyDerivation.h"
@@ -62,15 +61,6 @@ int main(int argc, char** argv)
   TEST_PERFORMANCE1(test_check_ring_signature, 2);
   TEST_PERFORMANCE1(test_check_ring_signature, 10);
   TEST_PERFORMANCE1(test_check_ring_signature, 100);
-
-  TEST_PERFORMANCE0(test_is_out_to_acc);
-  TEST_PERFORMANCE0(test_generate_key_image_helper);
-  TEST_PERFORMANCE0(test_generate_key_derivation);
-  TEST_PERFORMANCE0(test_generate_key_image);
-  TEST_PERFORMANCE0(test_derive_public_key);
-  TEST_PERFORMANCE0(test_derive_secret_key);
-
-  TEST_PERFORMANCE0(test_cn_slow_hash);
 
   std::cout << "Tests finished. Elapsed time: " << timer.elapsed_ms() / 1000 << " sec" << std::endl;
 
